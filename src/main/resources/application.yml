@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:10000/SecurityExample
+    username: admin
+    password: 12345
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+jwt:
+  expire-min: 30
+  secret-key: mySuperSecretKey
