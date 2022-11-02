@@ -1,11 +1,9 @@
 package com.securityexample.example.api.v1;
 
-import com.securityexample.example.request.LoginRequest;
 import com.securityexample.example.request.RegisterRequest;
 import com.securityexample.example.service.UserService;
 import com.securityexample.example.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.web.bind.annotation.*;
@@ -19,11 +17,9 @@ public class AuthApi {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     @GetMapping("/login")
-    public ResponseEntity<Object> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<Object> login(@RequestParam("username") String username,@RequestParam("password") String password) {
 
-        userService.loadUserByUsername(loginRequest.username());
-        String token = jwtUtil.encodeToken(loginRequest);
-        return ResponseEntity.ok().header(HttpHeaders.AUTHORIZATION,token).build();
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/register")

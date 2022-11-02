@@ -1,6 +1,5 @@
 package com.securityexample.example.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.securityexample.example.request.LoginRequest;
 import com.securityexample.example.service.UserService;
 import com.securityexample.example.util.JwtUtil;
@@ -23,6 +22,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
 @RequiredArgsConstructor
 @Component
 public class AuthEntryPoint extends OncePerRequestFilter {
@@ -38,48 +38,49 @@ public class AuthEntryPoint extends OncePerRequestFilter {
          */
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        if(Objects.isNull(header) && request.getServletPath().contains("/register")) {
-            filterChain.doFilter(request,response);
+        if (Objects.isNull(header) && request.getServletPath().contains("/register")) {
+            filterChain.doFilter(request, response);
             return;
 
         }
 
-        if(request.getServletPath().contains("/login")) {
-            ObjectMapper o = new ObjectMapper();
-            byte[] stream = request.getInputStream().readAllBytes();
-            LoginRequest loginRequest = o.readValue(stream,LoginRequest.class);
-            UserDetails userDetails = userService.loadUserByUsername(loginRequest.username());
-            Authentication auth = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(userDetails.getUsername(),userDetails.getPassword(),userDetails.getAuthorities()));
+        if (request.getServletPath().contains("/login")) {
+            String username = request.getParameter("username");
+            String password = request.getParameter("password");
+            LoginRequest loginRequest = new LoginRequest(username,password);
+            UserDetails userDetails = userService.loadUserByUsername(username);
             String token = jwtUtil.encodeToken(loginRequest);
-            response.addHeader(HttpHeaders.AUTHORIZATION,"Bearer "+token);
+            response.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + token);
             response.setStatus(200);
-            SecurityContextHolder.getContext().setAuthentication(auth);
-            filterChain.doFilter(request,response);
-                 return;
+            SecurityContextHolder
+                    .getContext()
+                    .setAuthentication(authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(userDetails.getUsername(), "", userDetails.getAuthorities())));
+            filterChain.doFilter(request, response);
+            return;
         }
 
         /***
          * Eğer Token varsa ve gelen token'in süresi bitmiş ise yenileme tokeni burda üretilir..
          */
-        if( !Objects.isNull(header) && jwtUtil.isExpiredToken(header)) {
+        if (!Objects.isNull(header) && jwtUtil.isExpiredToken(header)) {
             header = header.substring(7);
-           String newToken = jwtUtil.encodeToken(header);
-           response.setHeader(HttpHeaders.AUTHORIZATION,newToken);
-           Authentication auth =  SecurityContextHolder.getContext().getAuthentication();
-           if(Objects.isNull(auth)) {
-              String username =  jwtUtil.decodeJwt(header).getClaim("username").asString();
-               List<SimpleGrantedAuthority> roles = new ArrayList<>();
-               roles.add(new SimpleGrantedAuthority("USER"));
-               UsernamePasswordAuthenticationToken newAuth = new UsernamePasswordAuthenticationToken(username,null,null);
-               SecurityContextHolder.getContext().setAuthentication(newAuth);
-               response.setHeader(HttpHeaders.AUTHORIZATION,"Bearer "+newToken);
-               filterChain.doFilter(request,response);
-               return;
-           }
-           auth.setAuthenticated(true);
-           SecurityContextHolder.getContext().setAuthentication(auth);
-           filterChain.doFilter(request,response);
+            String newToken = jwtUtil.encodeToken(header);
+            response.setHeader(HttpHeaders.AUTHORIZATION, newToken);
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (Objects.isNull(auth)) {
+                String username = jwtUtil.decodeJwt(header).getClaim("username").asString();
+                List<SimpleGrantedAuthority> roles = new ArrayList<>();
+                roles.add(new SimpleGrantedAuthority("USER"));
+                UsernamePasswordAuthenticationToken newAuth = new UsernamePasswordAuthenticationToken(username, null, roles);
+                SecurityContextHolder.getContext().setAuthentication(newAuth);
+                response.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + newToken);
+                filterChain.doFilter(request, response);
+                return;
+            }
+            auth.setAuthenticated(true);
+            SecurityContextHolder.getContext().setAuthentication(auth);
+            filterChain.doFilter(request, response);
         }
-        response.sendError(401,"Yemedii...");
+        response.sendError(401, "Yemedii...");
     }
 }

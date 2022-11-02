@@ -22,7 +22,7 @@ public class Config {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf().disable();
         http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-        http.authorizeHttpRequests(a -> {a.antMatchers("/api/auth/register","/api/auth/login").permitAll().anyRequest().authenticated();});
+        http.authorizeHttpRequests(a -> {a.antMatchers("/api/auth/register").permitAll().anyRequest().authenticated();});
        // http.addFilter(new JwtFilter(authenticationManager));
         http.addFilterBefore(authEntryPoint, UsernamePasswordAuthenticationFilter.class);
        return http.build();
